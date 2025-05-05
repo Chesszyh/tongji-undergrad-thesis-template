@@ -1,0 +1,208 @@
+on:
+  push:
+    branches:
+      - master
+      - proposal
+      - fix-ci
+  pull_request:
+    branches:
+      - master
+      - proposal
+
+name: test
+
+env:
+  # Packages needed for the thesis compilation
+  TL_PACKAGES: |
+    adjustbox
+    algorithmicx
+    algorithms
+    biber
+    biblatex
+    biblatex-gb7714-2015
+    bibtex
+    booktabs
+    caption
+    carlisle
+    cases
+    catchfile
+    chinese-jfm
+    chngcntr
+    circledsteps
+    cleveref
+    collectbox
+    ctex
+    dvips
+    enumitem
+    environ
+    extarrows
+    fancybox
+    fancyhdr
+    fancyvrb
+    float
+    framed
+    fvextra
+    gbt7714
+    gsftopk
+    helvetic
+    hologo
+    ifplatform
+    lastpage
+    latexmk
+    lineno
+    minted
+    multirow
+    mwe
+    natbib
+    needspace
+    newtx
+    nth
+    oberdiek
+    pdftexcmds
+    pgf
+    pict2e
+    picture
+    realscripts
+    rsfs
+    setspace
+    siunitx
+    subfig
+    tcolorbox
+    texcount
+    texliveonfly
+    threeparttable
+    threeparttablex
+    times
+    titling
+    tocloft
+    trimspaces
+    txfonts
+    ucs
+    upquote
+    was
+    xcolor
+    xecjk
+    xpatch
+    xstring
+    zhnumber
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [-xelatex, -lualatex]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python for minted
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pygments for minted
+        run: pip install Pygments
+
+      - name: Install TeX Live
+        uses: teatimeguest/setup-texlive-action@v3
+        with:
+          version: 2023
+          packages: ${{ env.TL_PACKAGES }}
+          update-all-packages: true
+
+      - name: Compile LaTeX document
+        run: |
+          make ENGINE=${{ matrix.compiler }} all
+          mv main.pdf linux${{ matrix.compiler }}.pdf
+
+      - name: Check compile
+        if: ${{ failure() }}
+        run: |
+          cat main.log
+
+      - name: Upload pdf
+        uses: actions/upload-artifact@v4
+        with:
+          name: document linux output ${{ matrix.compiler }}
+          path: linux${{ matrix.compiler }}.pdf
+
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        compiler: [-xelatex, -lualatex]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python for minted
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pygments for minted
+        run: pip install Pygments
+
+      - name: Install TeX Live
+        uses: teatimeguest/setup-texlive-action@v3
+        with:
+          version: 2023
+          packages: ${{ env.TL_PACKAGES }}
+          update-all-packages: true
+
+      - name: Compile LaTeX document
+        run: |
+          make ENGINE=${{ matrix.compiler }} all
+          mv main.pdf macos${{ matrix.compiler }}.pdf
+
+      - name: Check compile
+        if: ${{ failure() }}
+        run: |
+          cat main.log
+
+      - name: Upload pdf
+        uses: actions/upload-artifact@v4
+        with:
+          name: document macos output ${{ matrix.compiler }}
+          path: macos${{ matrix.compiler }}.pdf
+
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        compiler: [-xelatex, -lualatex]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Python for minted
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Pygments for minted
+        run: pip install Pygments
+
+      - name: Install TeX Live
+        uses: teatimeguest/setup-texlive-action@v3
+        with:
+          version: 2023
+          packages: ${{ env.TL_PACKAGES }}
+          update-all-packages: true
+
+      - name: Compile LaTeX document
+        run: |
+          .\make.bat thesis ${{ matrix.compiler }}
+          mv main.pdf windows${{ matrix.compiler }}.pdf
+
+      - name: Check compile
+        if: ${{ failure() }}
+        run: |
+          cat main.log
+
+      - name: Upload pdf
+        uses: actions/upload-artifact@v4
+        with:
+          name: document windows output ${{ matrix.compiler }}
+          path: windows${{ matrix.compiler }}.pdf
