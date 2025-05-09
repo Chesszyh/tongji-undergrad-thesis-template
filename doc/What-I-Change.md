@@ -65,6 +65,7 @@ cd install-tl-2*
 perl ./install-tl --no-interaction # as root or with writable destination. This command may take several hours to run.
 # prepend /usr/local/texlive/YYYY/bin/PLATFORM to your PATH, e.g., /usr/local/texlive/2025/bin/x86_64-linux
 echo 'export PATH=$PATH:/usr/local/texlive/2025/bin/x86_64-linux' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 ### 使用`update-tlmgr-latest.sh`更新`tlmgr`工具
