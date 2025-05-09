@@ -1,5 +1,7 @@
 # :page_facing_up: 同济大学本科生毕业设计论文模板（理工类）
 
+> 注：本仓库已由使用者Chesszyh修改，应当只用于private。
+
 中文 | [English](README-EN.md)
 
 ## 样例展示
