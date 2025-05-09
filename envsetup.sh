@@ -89,41 +89,62 @@ function tlmgr-install() {
         UTL_RUNNER_CMD='update-tlmgr-latest.sh'; # Default to one in PATH
         if ! command -v \$UTL_RUNNER_CMD &> /dev/null; then
             echo 'update-tlmgr-latest.sh not found in PATH. Attempting to download to ${downloaded_script_path}...';
-            DL_TOOL_FOUND=false;
-            if command -v wget &> /dev/null; then
-                DL_TOOL_FOUND=true;
-                # Try to download. If wget fails (e.g. network error), the file might not be executable.
-                if wget -q \"${tlmgr_update_script_url}\" -O \"${downloaded_script_path}\" && chmod +x \"${downloaded_script_path}\"; then
-                    echo 'wget download successful.'
+            # Check if script is already downloaded
+            if [ -f \"${downloaded_script_path}\" ]; then
+                echo '已找到 ${downloaded_script_path}，尝试使其可执行...';
+                chmod +x \"${downloaded_script_path}\";
+                if [ -x \"${downloaded_script_path}\" ]; then
+                    UTL_RUNNER_CMD=\"${downloaded_script_path}\"; # Use downloaded script
+                    echo '已成功下载并使 ${downloaded_script_path} 可执行。';
                 else
-                    echo 'wget download or chmod failed.'
+                    echo '错误：使 ${downloaded_script_path} 可执行失败 (来自 ${tlmgr_update_script_url})。';
+                    exit 1; # Critical failure
                 fi;
-            elif command -v curl &> /dev/null; then
-                DL_TOOL_FOUND=true;
-                if curl -sSL \"${tlmgr_update_script_url}\" -o \"${downloaded_script_path}\" && chmod +x \"${downloaded_script_path}\"; then
-                     echo 'curl download successful.'
-                else
-                    echo 'curl download or chmod failed.'
-                fi;
-            fi;
-
-            if ! \$DL_TOOL_FOUND; then
-                echo '错误：容器内没有 wget 或 curl，无法下载 update-tlmgr-latest.sh。';
-                exit 1; # Critical failure, cannot proceed
-            fi;
-
-            if [ -x \"${downloaded_script_path}\" ]; then
-                UTL_RUNNER_CMD=\"${downloaded_script_path}\"; # Use downloaded script
-                echo '已成功下载并使 ${downloaded_script_path} 可执行。';
+            # Attempt to download the script
+            # Check for wget or curl
             else
-                echo '错误：下载或使 ${downloaded_script_path} 可执行失败 (来自 ${tlmgr_update_script_url})。';
-                exit 1; # Critical failure
+                echo '未找到 ${downloaded_script_path}，尝试下载...';
+                            # Check for wget or curl
+                DL_TOOL_FOUND=false;
+                if command -v wget &> /dev/null; then
+                    DL_TOOL_FOUND=true;
+                    # Try to download. If wget fails (e.g. network error), the file might not be executable.
+                    if wget -q \"${tlmgr_update_script_url}\" -O \"${downloaded_script_path}\" && chmod +x \"${downloaded_script_path}\"; then
+                        echo 'wget download successful.'
+                    else
+                        echo 'wget download or chmod failed.'
+                    fi;
+                elif command -v curl &> /dev/null; then
+                    DL_TOOL_FOUND=true;
+                    if curl -sSL \"${tlmgr_update_script_url}\" -o \"${downloaded_script_path}\" && chmod +x \"${downloaded_script_path}\"; then
+                        echo 'curl download successful.'
+                    else
+                        echo 'curl download or chmod failed.'
+                    fi;
+                fi;
+
+                if ! \$DL_TOOL_FOUND; then
+                    echo '错误：容器内没有 wget 或 curl，无法下载 update-tlmgr-latest.sh。';
+                    exit 1; # Critical failure, cannot proceed
+                fi;
+
+                if [ -x \"${downloaded_script_path}\" ]; then
+                    UTL_RUNNER_CMD=\"${downloaded_script_path}\"; # Use downloaded script
+                    echo '已成功下载并使 ${downloaded_script_path} 可执行。';
+                else
+                    echo '错误：下载或使 ${downloaded_script_path} 可执行失败 (来自 ${tlmgr_update_script_url})。';
+                    exit 1; # Critical failure
+                fi;
             fi;
         fi;
 
         echo \"将使用 \$UTL_RUNNER_CMD 更新 tlmgr 本身...\";
         # Part 2: Execute the update script, allowing it to 'fail' (mimicking original || true)
-        (\$UTL_RUNNER_CMD --update) || true;
+
+        # NOTE 此处需要显式指定/bin/sh，否则可能出现/bin/sh: bad interpreter: Text file busy错误
+        # 原因：文件系统或内核在 wget 关闭文件和脚本尝试执行chmod之间，文件句柄没有完全释放或存在锁竞争
+        # 显式指定/bin/sh，而不是让内核根据脚本的shebang (#!) 行自动选择解释器并执行，在我这里可以解决问题
+        /bin/sh \$UTL_RUNNER_CMD -- --update || true;   # 注意写法：-- --update: 将 --update 参数通过 -- 传递给内部脚本
 
         # Part 3: Update tlmgr itself and install packages (original logic)
         echo '正在执行: tlmgr update --self';
