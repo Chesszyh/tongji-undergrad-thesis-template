@@ -77,12 +77,12 @@ all: $(THESIS).pdf
 # Force remake
 $(THESIS).pdf: $(THESIS).tex FORCE_MAKE
 	@echo "Building $(THESIS).pdf with $(ENGINE)..."
-	@latexmk $(LATEXMK_OPT) $<
+	@TEXINPUTS=.:./style//: latexmk $(LATEXMK_OPT) $<
 
 # Preview continuous mode
 pvc: $(THESIS).tex
 	@echo "Starting preview continuous mode..."
-	@latexmk $(LATEXMK_OPT_PVC) $(THESIS)
+	@TEXINPUTS=.:./style//: latexmk $(LATEXMK_OPT_PVC) $(THESIS)
 
 # View PDF
 view: $(THESIS).pdf
